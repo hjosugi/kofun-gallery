@@ -5,6 +5,7 @@ module Main (main) where
 import Control.Monad (forM_, unless)
 import Data.Aeson (FromJSON (..), eitherDecode, withObject, (.:))
 import qualified Data.ByteString.Lazy as BL
+import Data.List (group, sort)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import System.Directory
@@ -16,14 +17,22 @@ import System.Directory
 import System.FilePath ((</>))
 
 data Kofun = Kofun
-  { hasImage :: Bool
+  { kofunId :: T.Text
+  , kofunName :: T.Text
+  , latitude :: Double
+  , longitude :: Double
+  , hasImage :: Bool
   , isPanorama :: Bool
   }
 
 instance FromJSON Kofun where
   parseJSON = withObject "Kofun" $ \o ->
     Kofun
-      <$> o .: "hasImage"
+      <$> o .: "id"
+      <*> o .: "name"
+      <*> o .: "lat"
+      <*> o .: "lng"
+      <*> o .: "hasImage"
       <*> o .: "isPanorama"
 
 main :: IO ()
@@ -35,19 +44,17 @@ main = do
       pure
       (eitherDecode rawData :: Either String [Kofun])
 
-  template <- TIO.readFile "site-src/index.html"
-  let countText = tshow (length records)
-      imageText = tshow (length (filter hasImage records))
-      panoramaText = tshow (length (filter isPanorama records))
-      rendered =
-        T.replace "{{KOFUN_COUNT}}" countText
-          . T.replace "{{IMAGE_COUNT}}" imageText
-          . T.replace "{{PANORAMA_COUNT}}" panoramaText
-          $ template
+  either fail pure (validateRecords records)
+
+  indexTemplate <- TIO.readFile "site-src/index.html"
+  developerTemplate <- TIO.readFile "site-src/developers.html"
+  let renderedIndex = renderTemplate records indexTemplate
+      renderedDevelopers = renderTemplate records developerTemplate
 
   createDirectoryIfMissing True "docs/assets"
-  TIO.writeFile "docs/index.html" rendered
-  TIO.writeFile "docs/404.html" rendered
+  TIO.writeFile "docs/index.html" renderedIndex
+  TIO.writeFile "docs/404.html" renderedIndex
+  TIO.writeFile "docs/developers.html" renderedDevelopers
   BL.writeFile "docs/assets/kofun-data.js" $
     BL.concat ["window.KOFUN_DATA=", rawData, ";\n"]
   copyDirectory "site-src/assets" "docs/assets"
@@ -64,6 +71,48 @@ main = do
       <> " with images, "
       <> show (length (filter isPanorama records))
       <> " panoramas."
+
+renderTemplate :: [Kofun] -> T.Text -> T.Text
+renderTemplate records =
+  T.replace "{{KOFUN_COUNT}}" (tshow (length records))
+    . T.replace "{{IMAGE_COUNT}}" (tshow (length (filter hasImage records)))
+    . T.replace "{{PANORAMA_COUNT}}" (tshow (length (filter isPanorama records)))
+
+validateRecords :: [Kofun] -> Either String ()
+validateRecords records
+  | null records = Left "data/kofun.json must contain at least one record"
+  | not (null emptyRequired) =
+      Left ("Records have an empty id or name: " <> summarize emptyRequired)
+  | not (null duplicateIds) =
+      Left ("Duplicate record ids: " <> summarize duplicateIds)
+  | not (null invalidCoordinates) =
+      Left ("Coordinates outside WGS84 bounds: " <> summarize invalidCoordinates)
+  | not (null invalidPanoramas) =
+      Left ("Panorama records must also have an image: " <> summarize invalidPanoramas)
+  | otherwise = Right ()
+ where
+  emptyRequired =
+    [ kofunId record
+    | record <- records
+    , T.null (T.strip (kofunId record)) || T.null (T.strip (kofunName record))
+    ]
+  duplicateIds =
+    [identifier | identifier : _ : _ <- group (sort (map kofunId records))]
+  invalidCoordinates =
+    [ kofunId record
+    | record <- records
+    , latitude record < -90
+        || latitude record > 90
+        || longitude record < -180
+        || longitude record > 180
+    ]
+  invalidPanoramas =
+    [kofunId record | record <- records, isPanorama record && not (hasImage record)]
+
+summarize :: [T.Text] -> String
+summarize values =
+  T.unpack (T.intercalate ", " (take 8 values))
+    <> if length values > 8 then " …" else ""
 
 copyDirectory :: FilePath -> FilePath -> IO ()
 copyDirectory source destination = do
@@ -88,5 +137,6 @@ sitemap =
     [ "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
     , "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">"
     , "  <url><loc>https://hjosugi.github.io/kofun-photo/</loc></url>"
+    , "  <url><loc>https://hjosugi.github.io/kofun-photo/developers.html</loc></url>"
     , "</urlset>"
     ]

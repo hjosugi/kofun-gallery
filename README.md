@@ -2,6 +2,10 @@
 
 全国の古墳を、地図・写真・歴史の入口・クイズで探せる静的サイトです。Haskellでサイトを生成し、GitHub Pagesへ公開します。
 
+- サイト: <https://hjosugi.github.io/kofun-photo/>
+- 開発者向けページ: <https://hjosugi.github.io/kofun-photo/developers.html>
+- 詳細な技術資料: [DEVELOPERS.md](DEVELOPERS.md)
+
 ## できること
 
 - 古墳名・都道府県・古墳群・説明文の横断検索
@@ -42,6 +46,34 @@ python3 -m http.server 8000 --directory docs
 
 `http://localhost:8000/` を開いて確認します。Pythonはプレビュー用HTTPサーバーだけに使い、サイト生成はHaskellが行います。
 
+## アーキテクチャ
+
+更新時と閲覧時を分離した、バックエンド不要の静的構成です。
+
+```text
+Wikidata / Commons / Kofun360
+              │
+              ▼
+ scripts/sync-data.mjs ── 取得・正規化・権利情報の保存
+              │
+              ▼
+      data/kofun.json ─── 版管理する正規スナップショット
+              │
+              ▼
+   Haskell kofun-build ── 型付き検証・件数集計・HTML生成
+              │
+              ▼
+          docs/ ───────── GitHub Pages静的成果物
+              │
+              ├── Leaflet地図・全文検索
+              ├── 今日の古墳・詳細表示
+              └── Pannellum・KOFUN QUIZ
+```
+
+Haskell生成器はJSONの必須フィールド、重複ID、WGS84座標範囲、画像と360°フラグの整合性を検証します。外部APIは明示的なデータ更新時だけ使用し、通常ビルドと閲覧時には呼びません。
+
+実装理由、データスキーマ、同期規則、ブラウザ内の状態管理、CI権限、拡張方針は[開発者ガイド](DEVELOPERS.md)にまとめています。
+
 ## データを更新する
 
 Node.js 20以降、ImageMagick、ネットワーク接続が必要です。
@@ -55,9 +87,8 @@ cabal run kofun-build
 
 ## GitHub Pages
 
-`main` ブランチへのpushで `.github/workflows/pages.yml` がHaskell生成器を実行し、`docs/` をGitHub Pagesへデプロイします。
+リポジトリ設定でPagesのSourceを「GitHub Actions」にすると、`main` ブランチへのpushで `.github/workflows/pages.yml` がHaskell生成器を実行し、`docs/` をGitHub Pagesへデプロイします。
 
 ## 正確性と訪問時の注意
 
 位置や説明は共同編集データを含み、最新の調査成果・現況と異なる場合があります。現地を訪れる前に自治体や文化財所管機関の情報を確認し、私有地・立入禁止区域へ入らず、墳丘や遺物を傷つけないでください。
-

@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="古墳めぐりのHaskell静的サイト生成、データパイプライン、フロントエンド、GitHub Pages構成を解説する開発者向け資料。">
+  <meta name="theme-color" content="#26382c">
+  <meta property="og:title" content="開発者向け — 古墳めぐり">
+  <meta property="og:description" content="Haskellを中心とした古墳めぐりのアーキテクチャと開発手順。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://hjosugi.github.io/kofun-photo/developers.html">
+  <title>開発者向け — 古墳めぐり</title>
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body class="developer-page">
+  <a class="skip-link" href="#main">本文へ移動</a>
+
+  <header class="site-header developer-header">
+    <a class="brand" href="./" aria-label="古墳めぐり トップ">
+      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <span class="brand-copy"><b>古墳めぐり</b><small>KOFUN ATLAS OF JAPAN</small></span>
+    </a>
+    <nav class="global-nav" aria-label="開発者向けメニュー">
+      <a href="#architecture">構成</a>
+      <a href="#haskell">Haskell</a>
+      <a href="#data">データ</a>
+      <a href="#workflow">開発手順</a>
+    </nav>
+    <a class="developer-back" href="./">地図へ戻る <span aria-hidden="true">→</span></a>
+  </header>
+
+  <main id="main">
+    <section class="developer-hero">
+      <div class="developer-shell">
+        <p class="eyebrow">FOR DEVELOPERS &amp; DATA CONTRIBUTORS</p>
+        <h1>古墳データを、<br><em>安全に速く届ける</em>設計。</h1>
+        <p class="developer-lead">
+          古墳めぐりは、Haskellで検証・生成する静的サイトです。公開時にサーバーやデータベースを必要とせず、
+          ブラウザだけで地図・検索・詳細表示・クイズを動かします。
+        </p>
+        <div class="developer-facts">
+          <div><b>Haskell</b><span>検証と静的生成</span></div>
+          <div><b>JSON snapshot</b><span>再現可能なデータ</span></div>
+          <div><b>Vanilla JS</b><span>検索・地図・クイズ</span></div>
+          <div><b>GitHub Pages</b><span>静的ホスティング</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="developer-shell developer-layout">
+      <aside class="developer-toc" aria-label="このページの目次">
+        <p>CONTENTS</p>
+        <a href="#principles">設計方針</a>
+        <a href="#architecture">全体アーキテクチャ</a>
+        <a href="#haskell">Haskell生成器</a>
+        <a href="#data">データモデル</a>
+        <a href="#frontend">ブラウザ実行時</a>
+        <a href="#workflow">ローカル開発</a>
+        <a href="#deployment">CI / GitHub Pages</a>
+        <a href="#licenses">ライセンス境界</a>
+        <a href="#limits">制約と拡張方針</a>
+      </aside>
+
+      <article class="developer-content">
+        <section id="principles">
+          <p class="eyebrow">01 / PRINCIPLES</p>
+          <h2>設計方針</h2>
+          <div class="principle-grid">
+            <div>
+              <b>Static first</b>
+              <p>検索やクイズのためのAPIサーバーを置かず、生成済みファイルだけを配信します。運用箇所と障害点を減らします。</p>
+            </div>
+            <div>
+              <b>Reproducible data</b>
+              <p>外部APIを閲覧のたびに呼ばず、権利情報を含むJSONスナップショットをリポジトリで版管理します。</p>
+            </div>
+            <div>
+              <b>Rights by design</b>
+              <p>画像ごとに作者・ライセンス・元ページを保持します。再配布条件が不明なDBは複製せず、公式検索へ案内します。</p>
+            </div>
+            <div>
+              <b>Progressive loading</b>
+              <p>一覧は軽量プレビューを使い、大きい360度写真は利用者がビューアーを開始した時だけ読み込みます。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="architecture">
+          <p class="eyebrow">02 / ARCHITECTURE</p>
+          <h2>全体アーキテクチャ</h2>
+          <p>
+            更新処理と閲覧処理を分離しています。ネットワークを使うのは明示的なデータ同期時だけです。
+            通常のビルドは保存済みJSONから決定的に同じサイトを生成します。
+          </p>
+          <div class="architecture-flow" role="img" aria-label="外部オープンデータを同期し、JSONスナップショットをHaskellで検証・生成してGitHub Pagesとブラウザへ届ける流れ">
+            <div class="flow-sources">
+              <span>Wikidata SPARQL</span>
+              <span>Commons API</span>
+              <span>Kofun360</span>
+            </div>
+            <i aria-hidden="true">→</i>
+            <div><b>sync-data.mjs</b><small>取得・正規化・統合</small></div>
+            <i aria-hidden="true">→</i>
+            <div class="flow-emphasis"><b>kofun.json</b><small>正規データスナップショット</small></div>
+            <i aria-hidden="true">→</i>
+            <div><b>kofun-build</b><small>Haskell検証・静的生成</small></div>
+            <i aria-hidden="true">→</i>
+            <div class="flow-targets">
+              <span>GitHub Pages</span>
+              <span>Leaflet / Search</span>
+              <span>KOFUN QUIZ</span>
+            </div>
+          </div>
+          <div class="callout">
+            <b>データフローの境界</b>
+            <p><code>scripts/sync-data.mjs</code> が外部形式を吸収し、<code>data/kofun.json</code> より後ろは取得元に依存しません。</p>
+          </div>
+        </section>
+
+        <section id="haskell">
+          <p class="eyebrow">03 / HASKELL BUILD</p>
+          <h2>Haskellは何を担当するか</h2>
+          <p>
+            実行ファイル <code>kofun-build</code> は、データを信頼して単にコピーするのではなく、
+            JSONを型へデコードして不整合を検出した後に公開物を生成します。
+          </p>
+          <ol class="step-list">
+            <li><span>1</span><div><b>Decode</b><p>AesonでID、名称、WGS84座標、画像・パノラマフラグを型付きで読み込みます。必須フィールドの欠落や型違いはビルド失敗になります。</p></div></li>
+            <li><span>2</span><div><b>Validate</b><p>空ID・空名称、重複ID、緯度経度の範囲、パノラマと画像フラグの整合性を検証します。</p></div></li>
+            <li><span>3</span><div><b>Render</b><p>掲載数・画像数・360°件数をテンプレートへ埋め込み、トップと開発者ページを生成します。</p></div></li>
+            <li><span>4</span><div><b>Package</b><p>JSONをブラウザ用JavaScriptへ包み、CSS・JavaScript・画像・manifest・robots・sitemapを<code>docs/</code>へ集約します。</p></div></li>
+          </ol>
+          <pre><code>data/kofun.json
+  └─ Aeson decode → [Kofun]
+       └─ validateRecords
+            ├─ renderTemplate → docs/index.html
+            ├─ renderTemplate → docs/developers.html
+            ├─ JSON wrapper  → docs/assets/kofun-data.js
+            └─ copy assets   → docs/assets/</code></pre>
+          <p>
+            Haskellを閲覧時のバックエンドとしては使いません。型検査と失敗の早期発見を公開前に集中させ、
+            配信後はCDNで扱いやすい静的ファイルだけにするためです。
+          </p>
+        </section>
+
+        <section id="data">
+          <p class="eyebrow">04 / DATA MODEL</p>
+          <h2>正規データモデル</h2>
+          <p>現在のスナップショットは <b>{{KOFUN_COUNT}}</b> 基、画像付き <b>{{IMAGE_COUNT}}</b> 基、360°写真 <b>{{PANORAMA_COUNT}}</b> 基です。</p>
+          <div class="schema-table-wrap">
+            <table class="schema-table">
+              <thead><tr><th>フィールド</th><th>役割</th><th>例・注意点</th></tr></thead>
+              <tbody>
+                <tr><td><code>id</code></td><td>永続的な一意キー</td><td><code>wikidata-Q...</code> / <code>kofun360-...</code></td></tr>
+                <tr><td><code>name</code>, <code>reading</code>, <code>aliases</code></td><td>表示と全文検索</td><td>別称も正規化検索の対象</td></tr>
+                <tr><td><code>lat</code>, <code>lng</code></td><td>WGS84座標</td><td>地図マーカーと近傍統合に使用</td></tr>
+                <tr><td><code>prefecture</code>, <code>location</code></td><td>地域絞り込み</td><td>所在地の粒度は取得元に依存</td></tr>
+                <tr><td><code>shape</code>, <code>length</code>, <code>period</code></td><td>考古学的な基本属性</td><td>不明値は空文字。推測で補完しない</td></tr>
+                <tr><td><code>sources</code>, <code>sourceUrl</code></td><td>来歴</td><td>統合レコードは複数出典を保持</td></tr>
+                <tr><td><code>image</code></td><td>画像と権利情報</td><td>作者、ライセンス、元ページ、altを保持</td></tr>
+                <tr><td><code>panoramaUrl</code></td><td>360°原画像</td><td>開始操作まで読み込まない</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Kofun360との統合は、名称を簡易正規化して候補を絞り、座標が750m以内の最短レコードへ結合します。
+            自動統合規則を変更する場合は、同名古墳の誤結合が起きないか差分を確認してください。
+          </p>
+        </section>
+
+        <section id="frontend">
+          <p class="eyebrow">05 / BROWSER RUNTIME</p>
+          <h2>ブラウザ側の構成</h2>
+          <div class="runtime-grid">
+            <div><b>State</b><p>検索語、都道府県、画像・360°、出典、地図／一覧、表示件数を単一の状態オブジェクトで管理します。</p></div>
+            <div><b>Search</b><p>NFKC・小文字化・空白や表記記号除去を行い、名称、読み、別称、所在地、形状、時期、説明を横断します。</p></div>
+            <div><b>Map</b><p>Leaflet 1.9.4とCanvasレンダラーを使い、OpenStreetMap帰属表示を常時表示します。</p></div>
+            <div><b>Details</b><p>ネイティブ<code>&lt;dialog&gt;</code>へ情報とライセンスを描画し、出典ページへ戻れるようにします。</p></div>
+            <div><b>Panorama</b><p>Pannellum 2.5.7を明示操作後に初期化し、大容量原画像の不要な転送を避けます。</p></div>
+            <div><b>Quiz</b><p>掲載データから問題と誤答候補を動的生成します。問題用の別データベースは持ちません。</p></div>
+          </div>
+          <p>
+            フレームワークやバンドラーを置かないのは、データ図鑑として依存更新と配信サイズを抑えるためです。
+            レコード数が大幅に増えて描画が重くなった場合は、Web Worker、空間インデックス、データ分割を検討します。
+          </p>
+        </section>
+
+        <section id="workflow">
+          <p class="eyebrow">06 / LOCAL WORKFLOW</p>
+          <h2>ローカル開発</h2>
+          <h3>通常のサイト変更</h3>
+          <pre><code>cabal update
+cabal build kofun-build
+cabal run kofun-build
+python3 -m http.server 8000 --directory docs</code></pre>
+          <p><code>http://localhost:8000/</code>で確認します。編集元は<code>site-src/</code>で、<code>docs/</code>は生成物です。</p>
+
+          <h3>オープンデータを更新</h3>
+          <pre><code>node scripts/sync-data.mjs
+cabal run kofun-build
+git diff -- data/kofun.json docs/</code></pre>
+          <p>
+            同期にはNode.js 20以降、ImageMagick、ネットワーク接続が必要です。
+            件数だけでなく、削除数、画像ライセンス、統合結果、異常な座標をレビューしてください。
+          </p>
+
+          <h3>主要ディレクトリ</h3>
+          <pre><code>.
+├── app/Main.hs              # Haskell検証・静的生成
+├── data/kofun.json          # 版管理する正規スナップショット
+├── scripts/sync-data.mjs    # 外部データ取得・統合
+├── site-src/                # HTMLテンプレートと手書きアセット
+├── docs/                    # GitHub Pagesへ渡す生成物
+├── DEVELOPERS.md            # リポジトリ向け詳細資料
+└── .github/workflows/       # CI / Pagesデプロイ</code></pre>
+        </section>
+
+        <section id="deployment">
+          <p class="eyebrow">07 / CI &amp; DEPLOYMENT</p>
+          <h2>GitHub Pagesへの配信</h2>
+          <p><code>main</code>へのpush、または手動実行で次の順に処理します。</p>
+          <div class="deployment-line">
+            <span>checkout</span><i>→</i><span>GHC / cabal</span><i>→</i><span>cache</span><i>→</i><span>build</span><i>→</i><span>generate</span><i>→</i><span>artifact</span><i>→</i><span>Pages</span>
+          </div>
+          <p>
+            buildジョブはソースを読むだけです。deployジョブだけに<code>pages: write</code>と
+            OIDC用<code>id-token: write</code>を与え、権限を最小化しています。
+          </p>
+        </section>
+
+        <section id="licenses">
+          <p class="eyebrow">08 / LICENSE BOUNDARY</p>
+          <h2>データを追加する前の確認</h2>
+          <ul class="check-list">
+            <li>データセットの利用規約と、個別画像のライセンスを別々に確認する。</li>
+            <li>作者名、ライセンス名・URL、元ページURLを失わない。</li>
+            <li>CC BY / CC BY-SAは必要な帰属を詳細画面に表示する。</li>
+            <li>再配布許諾が確認できないデータは保存せず、公式サイトへのリンクにする。</li>
+            <li>外部サービスのAPI、レート制限、タイル利用方針を守る。</li>
+          </ul>
+          <p>プロジェクトコードは0BSDです。第三者データ・画像にはそれぞれの条件が適用されます。</p>
+        </section>
+
+        <section id="limits">
+          <p class="eyebrow">09 / LIMITS &amp; ROADMAP</p>
+          <h2>現在の制約と拡張方針</h2>
+          <ul class="roadmap-list">
+            <li><b>全国完全収録ではない</b><span>自由利用条件を確認できた地点を優先。許諾済みデータは同じスキーマへ追加できます。</span></li>
+            <li><b>共同編集データを含む</b><span>位置や説明を学術的な確定情報として扱わず、公的機関・報告書への入口にします。</span></li>
+            <li><b>クライアント内検索</b><span>数千〜数万件へ増える場合は、都道府県別チャンクと検索インデックスを生成時に作ります。</span></li>
+            <li><b>自動統合は保守的</b><span>名称と距離だけで確定できない候補は別レコードとして残し、手動対応表の導入を検討します。</span></li>
+          </ul>
+          <div class="developer-actions">
+            <a class="primary-button" href="https://github.com/hjosugi/kofun-photo" target="_blank" rel="noopener">GitHubでコードを見る</a>
+            <a class="ghost-button" href="https://github.com/hjosugi/kofun-photo/blob/main/DEVELOPERS.md" target="_blank" rel="noopener">DEVELOPERS.md</a>
+          </div>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <footer>
+    <a class="brand footer-brand" href="./">
+      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <span class="brand-copy"><b>古墳めぐり</b><small>KOFUN ATLAS OF JAPAN</small></span>
+    </a>
+    <p>古墳と地域の記憶を、次の世代へ。</p>
+    <div><a href="./">古墳を探す</a><a href="https://github.com/hjosugi/kofun-photo" target="_blank" rel="noopener">GitHub</a></div>
+    <small>開発者向けアーキテクチャ資料</small>
+  </footer>
+</body>
+</html>
