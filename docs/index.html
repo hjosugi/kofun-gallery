@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="日本全国の古墳を、地図・写真・歴史・クイズでめぐるオープンデータ図鑑。">
+  <meta name="theme-color" content="#26382c">
+  <meta property="og:title" content="古墳めぐり — 日本全国の古墳写真地図">
+  <meta property="og:description" content="地図をひらけば、古代が近づく。全国の古墳を写真と物語で探検しよう。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hjosugi.github.io/kofun-photo/">
+  <title>古墳めぐり — 日本全国の古墳写真地図</title>
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="preconnect" href="https://tile.openstreetmap.org">
+  <link rel="preconnect" href="https://upload.wikimedia.org">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.css">
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">本文へ移動</a>
+
+  <header class="site-header">
+    <a class="brand" href="#" aria-label="古墳めぐり トップ">
+      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <span class="brand-copy"><b>古墳めぐり</b><small>KOFUN ATLAS OF JAPAN</small></span>
+    </a>
+    <nav class="global-nav" aria-label="メインメニュー">
+      <a href="#explore">地図で探す</a>
+      <a href="#learn">古墳を知る</a>
+      <a href="#quiz">KOFUN QUIZ</a>
+      <a href="#sources">出典</a>
+    </nav>
+    <button class="header-search" type="button" data-focus-search aria-label="古墳を検索">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+      <span>検索</span>
+    </button>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-orbit hero-orbit-one" aria-hidden="true"></div>
+      <div class="hero-orbit hero-orbit-two" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <p class="eyebrow">ANCIENT LANDSCAPES, CLOSE TO HOME</p>
+        <h1 id="hero-title">地図をひらけば、<br><em>古代</em>が近づく。</h1>
+        <p class="hero-lead">名前も形も、眠る物語もひとつずつ違う。全国の古墳を、写真と地図でめぐるオープンデータ図鑑です。</p>
+        <form class="hero-search-form" id="hero-search-form" role="search">
+          <label class="sr-only" for="hero-search">古墳名・都道府県・古墳群で検索</label>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+          <input id="hero-search" name="q" type="search" autocomplete="off" placeholder="古墳名・都道府県・古墳群で検索">
+          <button type="submit">探してみる</button>
+        </form>
+        <div class="hero-meta" aria-label="掲載データ概要">
+          <span><b>1183</b> 地点</span>
+          <span><b>514</b> 画像付き</span>
+          <span><b>13</b> 360°</span>
+          <span>毎日更新「今日の古墳」</span>
+        </div>
+      </div>
+
+      <article class="today-card" id="today-card" aria-live="polite">
+        <div class="today-photo skeleton"></div>
+        <div class="today-body">
+          <div class="today-heading">
+            <p><span class="sun-dot" aria-hidden="true"></span> 今日の古墳</p>
+            <span id="today-date"></span>
+          </div>
+          <h2>古墳を選んでいます…</h2>
+          <p class="today-location"></p>
+          <p class="today-description"></p>
+          <button type="button" class="text-link">くわしく見る <span aria-hidden="true">→</span></button>
+        </div>
+      </article>
+    </section>
+
+    <section class="quick-stats" aria-label="データ統計">
+      <div><span class="stat-icon">◉</span><p><b>1183</b><small>位置情報つき古墳</small></p></div>
+      <div><span class="stat-icon">▧</span><p><b>514</b><small>自由利用できる画像</small></p></div>
+      <div><span class="stat-icon">◎</span><p><b>13</b><small>CC0パノラマ</small></p></div>
+      <div><span class="stat-icon">日</span><p><b>47</b><small>都道府県から探せる</small></p></div>
+    </section>
+
+    <section class="explore section-shell" id="explore" aria-labelledby="explore-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">EXPLORE THE MAP</p>
+          <h2 id="explore-title">日本地図から古墳を探す</h2>
+        </div>
+        <p>点を選ぶと、その場所の写真・基本情報・一次情報へのリンクを確認できます。</p>
+      </div>
+
+      <div class="explore-layout">
+        <aside class="filter-panel" aria-label="古墳の絞り込み">
+          <div class="filter-search">
+            <label for="map-search">キーワード</label>
+            <div>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+              <input id="map-search" type="search" placeholder="例：仁徳天皇陵、大阪府">
+            </div>
+          </div>
+
+          <fieldset>
+            <legend>都道府県</legend>
+            <select id="prefecture-filter">
+              <option value="">全国すべて</option>
+            </select>
+          </fieldset>
+
+          <fieldset>
+            <legend>画像</legend>
+            <label class="check-row"><input id="photo-filter" type="checkbox"><span>写真がある古墳だけ</span></label>
+            <label class="check-row"><input id="panorama-filter" type="checkbox"><span>360°写真がある古墳だけ</span></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>データの出典</legend>
+            <label class="radio-row"><input name="source" value="" type="radio" checked><span>すべて</span></label>
+            <label class="radio-row"><input name="source" value="wikidata" type="radio"><span>Wikidata</span></label>
+            <label class="radio-row"><input name="source" value="kofun360" type="radio"><span>Kofun360</span></label>
+          </fieldset>
+
+          <button id="reset-filters" class="ghost-button" type="button">条件をリセット</button>
+          <p class="filter-note">※ 位置は公開データの概略です。訪問前に文化財所管機関の最新情報をご確認ください。</p>
+        </aside>
+
+        <div class="map-panel">
+          <div class="map-toolbar">
+            <p><b id="result-count">1183</b>件を表示</p>
+            <div class="view-switch" role="group" aria-label="表示切り替え">
+              <button type="button" class="is-active" data-view="map" aria-pressed="true">地図</button>
+              <button type="button" data-view="list" aria-pressed="false">一覧</button>
+            </div>
+          </div>
+          <div id="kofun-map" aria-label="日本全国の古墳地図"></div>
+          <div id="kofun-list" class="kofun-list" hidden></div>
+          <div class="map-legend"><span></span> 古墳の位置　<small>地図上の密集した点は拡大してご覧ください</small></div>
+        </div>
+      </div>
+
+      <div class="results-heading">
+        <div>
+          <p class="eyebrow">DISCOVER</p>
+          <h3>写真から出会う古墳</h3>
+        </div>
+        <button class="ghost-button" id="shuffle-results" type="button">並び替えて発見</button>
+      </div>
+      <div id="featured-grid" class="featured-grid"></div>
+      <button id="load-more" class="load-more" type="button">もっと見る</button>
+    </section>
+
+    <section class="learn" id="learn" aria-labelledby="learn-title">
+      <div class="section-shell">
+        <div class="section-heading light-heading">
+          <div>
+            <p class="eyebrow">KOFUN 101</p>
+            <h2 id="learn-title">古墳を知る、4つの入口</h2>
+          </div>
+          <p>古墳は3世紀中頃から7世紀頃につくられた墳墓。形や大きさ、埋葬施設から当時の社会が見えてきます。</p>
+        </div>
+        <div class="learn-grid">
+          <article>
+            <span>01</span>
+            <div class="kofun-shape keyhole" aria-hidden="true"></div>
+            <h3>なぜ、この形？</h3>
+            <p>前方後円墳だけでなく、円墳・方墳・前方後方墳など、地域や時代で形が変わります。</p>
+          </article>
+          <article>
+            <span>02</span>
+            <div class="strata-icon" aria-hidden="true"><i></i><i></i><i></i></div>
+            <h3>いつ、つくられた？</h3>
+            <p>古墳時代は約350年。副葬品や埴輪、石室の変化が年代を読み解く手がかりです。</p>
+          </article>
+          <article>
+            <span>03</span>
+            <div class="haniwa-icon" aria-hidden="true"><i></i></div>
+            <h3>誰が眠っている？</h3>
+            <p>被葬者が確定していない古墳も多数あります。「伝承」と「発掘成果」を区別して読みます。</p>
+          </article>
+          <article>
+            <span>04</span>
+            <div class="compass-icon" aria-hidden="true">⌖</div>
+            <h3>どう訪ねる？</h3>
+            <p>多くは大切な文化財です。立入禁止・私有地・見学時間を確認し、墳丘を傷つけず訪ねましょう。</p>
+          </article>
+        </div>
+        <div class="history-strip">
+          <div><b>3世紀中頃</b><span>巨大な前方後円墳が出現</span></div>
+          <i></i>
+          <div><b>4〜5世紀</b><span>各地に古墳文化が広がる</span></div>
+          <i></i>
+          <div><b>6世紀</b><span>群集墳と横穴式石室が普及</span></div>
+          <i></i>
+          <div><b>7世紀頃</b><span>古墳築造が終息へ</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="quiz section-shell" id="quiz" aria-labelledby="quiz-title">
+      <div class="quiz-intro">
+        <p class="eyebrow">KOFUN QUIZ</p>
+        <h2 id="quiz-title">写真と地図で、<br>古墳博士に挑戦。</h2>
+        <p>掲載データから毎回問題をつくります。全5問、形・場所・写真を手がかりに答えてみよう。</p>
+        <div class="quiz-progress-preview" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+        <button id="start-quiz" class="primary-button" type="button">クイズをはじめる <span aria-hidden="true">→</span></button>
+      </div>
+      <div class="quiz-stage" id="quiz-stage">
+        <div class="quiz-empty">
+          <div class="quiz-medallion" aria-hidden="true"><span></span></div>
+          <p>全国の古墳から<br><b>5問</b>を出題します</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sources" id="sources" aria-labelledby="sources-title">
+      <div class="section-shell sources-layout">
+        <div>
+          <p class="eyebrow">OPEN DATA & CREDITS</p>
+          <h2 id="sources-title">出典が見える図鑑です。</h2>
+          <p>「フリー画像」でも条件は同じではありません。CC0、CC BY、CC BY-SAなどを画像ごとに表示し、作者と元ページへ戻れるようにしています。</p>
+        </div>
+        <div class="source-cards">
+          <a href="https://github.com/TeamTest57/Kofun360" target="_blank" rel="noopener">
+            <span class="source-badge cc0">CC0</span>
+            <div><b>Kofun360</b><small>360度写真・座標／アーカイブ</small></div>
+            <span aria-hidden="true">↗</span>
+          </a>
+          <a href="https://www.wikidata.org/" target="_blank" rel="noopener">
+            <span class="source-badge cc0">CC0</span>
+            <div><b>Wikidata</b><small>名称・位置・説明・関連情報</small></div>
+            <span aria-hidden="true">↗</span>
+          </a>
+          <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">
+            <span class="source-badge">FREE</span>
+            <div><b>Wikimedia Commons</b><small>画像・作者・個別ライセンス</small></div>
+            <span aria-hidden="true">↗</span>
+          </a>
+          <a href="https://zenkoku-kofun.nara-hgis.jp/" target="_blank" rel="noopener">
+            <span class="source-badge official">6,799</span>
+            <div><b>奈良女子大学 全国古墳DB</b><small>公式サイトでさらに詳しく検索</small></div>
+            <span aria-hidden="true">↗</span>
+          </a>
+          <a href="https://kofun.info/spots/search" target="_blank" rel="noopener">
+            <span class="source-badge official">7,104</span>
+            <div><b>古墳マップ</b><small>写真約3.9万枚／転載せず公式へ案内</small></div>
+            <span aria-hidden="true">↗</span>
+          </a>
+          <a href="https://heritagemap.nabunken.go.jp/" target="_blank" rel="noopener">
+            <span class="source-badge official">公的</span>
+            <div><b>文化財総覧WebGIS</b><small>全国約61万件の文化財関連情報</small></div>
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="detail-dialog" class="detail-dialog">
+    <button class="dialog-close" type="button" aria-label="閉じる">×</button>
+    <div id="detail-content"></div>
+  </dialog>
+
+  <footer>
+    <a class="brand footer-brand" href="#">
+      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <span class="brand-copy"><b>古墳めぐり</b><small>KOFUN ATLAS OF JAPAN</small></span>
+    </a>
+    <p>古墳と地域の記憶を、次の世代へ。</p>
+    <div><a href="#sources">データとライセンス</a><a href="https://github.com/hjosugi/kofun-photo" target="_blank" rel="noopener">GitHub</a></div>
+    <small>掲載情報は調査・訪問の入口です。現地の規則と最新の公的情報を優先してください。</small>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.js"></script>
+  <script src="./assets/kofun-data.js"></script>
+  <script src="./assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "古墳めぐり — 日本全国の古墳写真地図",
+  "short_name": "古墳めぐり",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4efe4",
+  "theme_color": "#26382c",
+  "icons": []
+}
+
