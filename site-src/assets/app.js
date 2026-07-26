@@ -40,6 +40,7 @@
     shuffle: document.querySelector("#shuffle-results"),
     today: document.querySelector("#today-card"),
     todayDate: document.querySelector("#today-date"),
+    externalSearch: document.querySelector("#kofun-info-search"),
     dialog: document.querySelector("#detail-dialog"),
     detail: document.querySelector("#detail-content"),
     startQuiz: document.querySelector("#start-quiz"),
@@ -275,10 +276,19 @@
 
   function renderAll({ fitMap = false } = {}) {
     const items = filteredRecords();
+    updateExternalSearch();
     dom.count.textContent = new Intl.NumberFormat("ja-JP").format(items.length);
     renderCards(items);
     renderList(items);
     updateMarkers(items, fitMap);
+  }
+
+  function updateExternalSearch() {
+    if (!dom.externalSearch) return;
+    const url = new URL("https://kofun.info/spots/search");
+    const query = state.query || state.prefecture || "古墳";
+    url.searchParams.set("search", query);
+    dom.externalSearch.href = url.toString();
   }
 
   function setQuery(value, { fitMap = true } = {}) {
