@@ -1,5 +1,5 @@
 cabal-version:      3.0
-name:               kofun-photo
+name:               kofun-gallery
 version:            0.1.0.0
 synopsis:           Haskell static site generator for a nationwide kofun atlas
 description:        Generates the Kofun Meguri interactive map and quiz for GitHub Pages.

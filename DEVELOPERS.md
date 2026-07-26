@@ -55,7 +55,7 @@ flowchart LR
 ├── flake.nix                    パッケージ・開発シェル・checks
 ├── flake.lock                   nixpkgsの固定リビジョン
 ├── .envrc                       direnvからnix developを利用
-├── kofun-photo.cabal
+├── kofun-gallery.cabal
 ├── cabal.project
 ├── THIRD_PARTY.md
 └── LICENSE

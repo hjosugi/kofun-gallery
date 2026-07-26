@@ -25,9 +25,9 @@
         let
           pkgs = pkgsFor system;
           haskellPackages = pkgs.haskell.packages.ghc910;
-          generator = haskellPackages.callCabal2nix "kofun-photo" self { };
+          generator = haskellPackages.callCabal2nix "kofun-gallery" self { };
           site = pkgs.stdenvNoCC.mkDerivation {
-            pname = "kofun-photo-site";
+            pname = "kofun-gallery-site";
             version = "0.1.0";
             src = self;
             nativeBuildInputs = [ generator ];
