@@ -950,7 +950,7 @@ footer > small { grid-column: 2 / -1; color: rgba(255,255,255,.32); font-size: .
 }
 .developer-facts {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   max-width: 940px;
   margin-top: 3.2rem;
   border: 1px solid rgba(255,255,255,.14);
@@ -1173,8 +1173,8 @@ footer > small { grid-column: 2 / -1; color: rgba(255,255,255,.32); font-size: .
   .developer-toc { position: static; display: grid; grid-template-columns: 1fr 1fr; gap: .15rem 1rem; }
   .developer-toc p { grid-column: 1 / -1; }
   .developer-facts { grid-template-columns: 1fr 1fr; }
-  .developer-facts div:nth-child(2) { border-right: 0; }
-  .developer-facts div:nth-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.14); }
+  .developer-facts div:nth-child(even) { border-right: 0; }
+  .developer-facts div:nth-child(-n+4) { border-bottom: 1px solid rgba(255,255,255,.14); }
 }
 
 @media (max-width: 540px) {

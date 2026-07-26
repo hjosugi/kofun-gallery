@@ -12,7 +12,8 @@ flowchart LR
     C[Wikimedia Commons API] --> S
     K[Kofun360 GitHub tree/raw] --> S
     S --> J[data/kofun.json]
-    J --> H[kofun-build / Haskell]
+    J --> N[Nix flake / pinned toolchain]
+    N --> H[kofun-build / Haskell]
     T[site-src templates/assets] --> H
     H --> D[docs/ static artifact]
     D --> P[GitHub Pages]
@@ -51,6 +52,9 @@ flowchart LR
 │   └── robots.txt
 ├── docs/                        Haskellが生成するPages成果物
 ├── .github/workflows/pages.yml  ビルド・デプロイ
+├── flake.nix                    パッケージ・開発シェル・checks
+├── flake.lock                   nixpkgsの固定リビジョン
+├── .envrc                       direnvからnix developを利用
 ├── kofun-photo.cabal
 ├── cabal.project
 ├── THIRD_PARTY.md
@@ -59,7 +63,24 @@ flowchart LR
 
 `site-src/` と `data/` が編集元です。`docs/` はGitHub Pagesへそのまま渡せる生成物であり、手編集した内容は次の生成で失われます。
 
-## 3. Why Haskell
+## 3. Why Nix
+
+Nix Flakeを開発環境とCIの共通入口にします。`flake.lock`がnixpkgsの正確なリビジョンを固定するため、ローカルとGitHub Actionsで同じGHC・Cabal・Node.js・ImageMagickを使えます。
+
+| Output | Command | Purpose |
+| --- | --- | --- |
+| `devShells.<system>.default` | `nix develop` | 開発ツール一式を提供 |
+| `packages.<system>.generator` | `nix build` | Haskell生成器をパッケージ化 |
+| `packages.<system>.site` | `nix build .#site` | ネットワークなしで静的成果物を再生成 |
+| `apps.<system>.build-site` | `nix run .#build-site` | 作業ツリーの`docs/`を更新 |
+| `checks.<system>.*` | `nix flake check` | 生成器とサイト成果物をビルド |
+| `formatter.<system>` | `nix fmt` | `flake.nix`を整形 |
+
+対応systemは`x86_64-linux`、`aarch64-linux`、`aarch64-darwin`です。固定したnixpkgs 26.11で廃止されたIntel macOSを暗黙に対応扱いせず、評価できる環境だけを列挙しています。Flakeに直接依存を列挙し、flake-utilsなどの補助入力を増やさない構成です。
+
+`site` derivationは既存の`docs/`を削除してからHaskell生成器を実行します。コミット済み生成物が古くても成功したように見える状態を防ぎ、Nix sandbox内でネットワークなしに再生成できることを検査します。
+
+## 4. Why Haskell
 
 Haskellは閲覧リクエストを処理するWebサーバーではなく、公開前の境界として使います。
 
@@ -114,7 +135,7 @@ data Kofun = Kofun
 
 生成器はトップ、404、開発者ページ、ブラウザ用データ、静的アセット、manifest、robots、sitemapを`docs/`へ出力します。
 
-## 4. Canonical data model
+## 5. Canonical data model
 
 `data/kofun.json` はオブジェクトの配列です。
 
@@ -159,7 +180,7 @@ data Kofun = Kofun
 
 `pageUrl`、`author`、`license`、`licenseUrl`を落とさないことが重要です。「フリー画像」は無条件利用を意味しません。
 
-## 5. Data synchronization
+## 6. Data synchronization
 
 同期処理はNode.jsで行います。これは、HTTP API処理、GitHub tree JSON、画像メタデータ、ImageMagick起動を小さなスクリプトで扱うためです。
 
@@ -200,7 +221,7 @@ GitHub treeから写真パスを読み、フォルダー名に含まれる緯度
 
 この名称・距離ヒューリスティックは完全ではありません。閾値や正規化を変更した時は、統合件数と同名古墳を必ずレビューしてください。
 
-## 6. Browser architecture
+## 7. Browser architecture
 
 ブラウザ部分は依存を抑えたVanilla JavaScriptです。
 
@@ -245,21 +266,21 @@ KOFUN QUIZは掲載データから5問を作ります。都道府県、名称、
 
 Pannellumは詳細ダイアログで利用者が開始ボタンを押した後に初期化します。トップ表示だけで大きな360°原画像を転送しない設計です。
 
-## 7. Local development
+## 8. Local development
 
 ### Requirements
 
-- GHC 9.8以降
-- cabal-install
-- プレビュー用HTTPサーバー
-- データ同期時のみ: Node.js 20以降、ImageMagick、ネットワーク
+- Nix 2.19以降（`nix-command`と`flakes`を有効化）
+- データ同期時のみネットワーク接続
+- 任意: direnv
+
+GHC、Cabal、Node.js、ImageMagick、Python、Nix formatterはFlakeが提供します。
 
 ### Build and preview
 
 ```sh
-cabal update
-cabal build kofun-build
-cabal run kofun-build
+nix develop
+nix run .#build-site
 python3 -m http.server 8000 --directory docs
 ```
 
@@ -267,11 +288,24 @@ python3 -m http.server 8000 --directory docs
 
 `file://`では、地図ライブラリ、ブラウザのセキュリティ制約、相対URLの挙動がHTTP配信と異なるため検証しません。
 
+direnvを利用する場合は、初回だけ次を実行します。
+
+```sh
+direnv allow
+```
+
+Nix storeへ静的成果物を作り、生成処理の再現性を確認する場合は次を使います。
+
+```sh
+nix build .#site
+ls result/
+```
+
 ### Refresh data
 
 ```sh
-node scripts/sync-data.mjs
-cabal run kofun-build
+nix develop -c node scripts/sync-data.mjs
+nix run .#build-site
 git diff -- data/kofun.json site-src/assets/kofun360 docs
 ```
 
@@ -280,11 +314,11 @@ git diff -- data/kofun.json site-src/assets/kofun360 docs
 ### Minimum checks
 
 ```sh
-cabal check
-cabal build kofun-build
-cabal run kofun-build
-node --check scripts/sync-data.mjs
-node --check site-src/assets/app.js
+nix fmt -- --check flake.nix
+nix flake check --print-build-logs
+nix develop -c cabal check
+nix develop -c node --check scripts/sync-data.mjs
+nix develop -c node --check site-src/assets/app.js
 git diff --check
 ```
 
@@ -299,19 +333,18 @@ git diff --check
 - KOFUN QUIZの回答と結果
 - コンソールエラーがない
 
-## 8. CI and GitHub Pages
+## 9. CI and GitHub Pages
 
 `.github/workflows/pages.yml` は`main`へのpushと手動実行に対応します。
 
 ### Build job
 
 1. Checkout
-2. GHC 9.10.3 / cabal 3.16.1.0
-3. Cabal storeと`dist-newstyle`のキャッシュ
-4. `cabal build kofun-build`
-5. `cabal run kofun-build`
-6. Pages設定確認
-7. `docs/`をPages artifactとしてアップロード
+2. `cachix/install-nix-action`でNixを導入
+3. `nix flake check --print-build-logs`
+4. `nix run .#build-site`
+5. Pages設定確認
+6. `docs/`をPages artifactとしてアップロード
 
 ### Deploy job
 
@@ -323,7 +356,7 @@ build成功後だけ実行し、GitHub Pagesへ保存済みartifactを配信し�
 
 リポジトリ設定のPages Sourceは`GitHub Actions`である必要があります。
 
-## 9. Licensing boundary
+## 10. Licensing boundary
 
 コードのライセンスは0BSDですが、データと画像は別です。
 
@@ -338,7 +371,7 @@ build成功後だけ実行し、GitHub Pagesへ保存済みartifactを配信し�
 
 詳細は[THIRD_PARTY.md](THIRD_PARTY.md)を参照してください。
 
-## 10. Scaling and extension
+## 11. Scaling and extension
 
 ### More records
 

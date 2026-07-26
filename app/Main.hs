@@ -4,10 +4,11 @@ module Main (main) where
 
 import Control.Monad (forM_, unless)
 import Data.Aeson (FromJSON (..), eitherDecode, withObject, (.:))
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import Data.List (group, sort)
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
+import qualified Data.Text.Encoding as TE
 import System.Directory
   ( copyFile
   , createDirectoryIfMissing
@@ -46,22 +47,22 @@ main = do
 
   either fail pure (validateRecords records)
 
-  indexTemplate <- TIO.readFile "site-src/index.html"
-  developerTemplate <- TIO.readFile "site-src/developers.html"
+  indexTemplate <- readUtf8File "site-src/index.html"
+  developerTemplate <- readUtf8File "site-src/developers.html"
   let renderedIndex = renderTemplate records indexTemplate
       renderedDevelopers = renderTemplate records developerTemplate
 
   createDirectoryIfMissing True "docs/assets"
-  TIO.writeFile "docs/index.html" renderedIndex
-  TIO.writeFile "docs/404.html" renderedIndex
-  TIO.writeFile "docs/developers.html" renderedDevelopers
+  writeUtf8File "docs/index.html" renderedIndex
+  writeUtf8File "docs/404.html" renderedIndex
+  writeUtf8File "docs/developers.html" renderedDevelopers
   BL.writeFile "docs/assets/kofun-data.js" $
     BL.concat ["window.KOFUN_DATA=", rawData, ";\n"]
   copyDirectory "site-src/assets" "docs/assets"
   copyFile "site-src/robots.txt" "docs/robots.txt"
   copyFile "site-src/manifest.webmanifest" "docs/manifest.webmanifest"
-  TIO.writeFile "docs/.nojekyll" ""
-  TIO.writeFile "docs/sitemap.xml" sitemap
+  writeUtf8File "docs/.nojekyll" ""
+  writeUtf8File "docs/sitemap.xml" sitemap
 
   putStrLn $
     "Generated docs/: "
@@ -113,6 +114,17 @@ summarize :: [T.Text] -> String
 summarize values =
   T.unpack (T.intercalate ", " (take 8 values))
     <> if length values > 8 then " …" else ""
+
+readUtf8File :: FilePath -> IO T.Text
+readUtf8File path = do
+  bytes <- BS.readFile path
+  either
+    (fail . (("Invalid UTF-8 in " <> path <> ": ") <>) . show)
+    pure
+    (TE.decodeUtf8' bytes)
+
+writeUtf8File :: FilePath -> T.Text -> IO ()
+writeUtf8File path = BS.writeFile path . TE.encodeUtf8
 
 copyDirectory :: FilePath -> FilePath -> IO ()
 copyDirectory source destination = do

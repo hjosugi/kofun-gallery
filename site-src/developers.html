@@ -36,11 +36,12 @@
         <p class="eyebrow">FOR DEVELOPERS &amp; DATA CONTRIBUTORS</p>
         <h1>古墳データを、<br><em>安全に速く届ける</em>設計。</h1>
         <p class="developer-lead">
-          古墳めぐりは、Haskellで検証・生成する静的サイトです。公開時にサーバーやデータベースを必要とせず、
-          ブラウザだけで地図・検索・詳細表示・クイズを動かします。
+          古墳めぐりは、Nixで環境を固定し、Haskellで検証・生成する静的サイトです。
+          公開時にサーバーやデータベースを必要とせず、ブラウザだけで地図・検索・詳細表示・クイズを動かします。
         </p>
         <div class="developer-facts">
           <div><b>Haskell</b><span>検証と静的生成</span></div>
+          <div><b>Nix Flake</b><span>環境と成果物を固定</span></div>
           <div><b>JSON snapshot</b><span>再現可能なデータ</span></div>
           <div><b>Vanilla JS</b><span>検索・地図・クイズ</span></div>
           <div><b>GitHub Pages</b><span>静的ホスティング</span></div>
@@ -53,6 +54,7 @@
         <p>CONTENTS</p>
         <a href="#principles">設計方針</a>
         <a href="#architecture">全体アーキテクチャ</a>
+        <a href="#nix">Nix Flake</a>
         <a href="#haskell">Haskell生成器</a>
         <a href="#data">データモデル</a>
         <a href="#frontend">ブラウザ実行時</a>
@@ -104,7 +106,7 @@
             <i aria-hidden="true">→</i>
             <div class="flow-emphasis"><b>kofun.json</b><small>正規データスナップショット</small></div>
             <i aria-hidden="true">→</i>
-            <div><b>kofun-build</b><small>Haskell検証・静的生成</small></div>
+            <div><b>Nix + Haskell</b><small>固定環境で検証・静的生成</small></div>
             <i aria-hidden="true">→</i>
             <div class="flow-targets">
               <span>GitHub Pages</span>
@@ -118,8 +120,29 @@
           </div>
         </section>
 
+        <section id="nix">
+          <p class="eyebrow">03 / NIX FLAKE</p>
+          <h2>環境と成果物を同じFlakeで管理</h2>
+          <p>
+            <code>flake.lock</code>がnixpkgsの正確なリビジョンを固定します。
+            ローカルとGitHub Actionsで同じGHC、Cabal、Node.js、ImageMagickを使用できます。
+          </p>
+          <div class="runtime-grid">
+            <div><b>nix develop</b><p>GHC 9.10系、Cabal、Node.js 22、ImageMagick、Python、Nix formatterを含む開発シェルです。</p></div>
+            <div><b>nix build</b><p>Haskell生成器を通常のNix packageとしてビルドします。</p></div>
+            <div><b>nix build .#site</b><p>既存の<code>docs/</code>を使わず、sandbox内で静的サイトを再生成します。</p></div>
+            <div><b>nix run .#build-site</b><p>作業ツリーの<code>docs/</code>を更新し、Pagesへ渡せる状態にします。</p></div>
+            <div><b>nix flake check</b><p>生成器と静的サイトの両derivationを評価・ビルドします。</p></div>
+            <div><b>nix fmt</b><p>Flakeが指定するRFC Style formatterでNixコードを整形します。</p></div>
+          </div>
+          <div class="callout">
+            <b>対応プラットフォーム</b>
+            <p>x86_64 / ARM64 LinuxとARM64 macOSを出力対象にし、補助Flakeへ依存せずnixpkgsだけで構成しています。</p>
+          </div>
+        </section>
+
         <section id="haskell">
-          <p class="eyebrow">03 / HASKELL BUILD</p>
+          <p class="eyebrow">04 / HASKELL BUILD</p>
           <h2>Haskellは何を担当するか</h2>
           <p>
             実行ファイル <code>kofun-build</code> は、データを信頼して単にコピーするのではなく、
@@ -145,7 +168,7 @@
         </section>
 
         <section id="data">
-          <p class="eyebrow">04 / DATA MODEL</p>
+          <p class="eyebrow">05 / DATA MODEL</p>
           <h2>正規データモデル</h2>
           <p>現在のスナップショットは <b>{{KOFUN_COUNT}}</b> 基、画像付き <b>{{IMAGE_COUNT}}</b> 基、360°写真 <b>{{PANORAMA_COUNT}}</b> 基です。</p>
           <div class="schema-table-wrap">
@@ -170,7 +193,7 @@
         </section>
 
         <section id="frontend">
-          <p class="eyebrow">05 / BROWSER RUNTIME</p>
+          <p class="eyebrow">06 / BROWSER RUNTIME</p>
           <h2>ブラウザ側の構成</h2>
           <div class="runtime-grid">
             <div><b>State</b><p>検索語、都道府県、画像・360°、出典、地図／一覧、表示件数を単一の状態オブジェクトで管理します。</p></div>
@@ -187,18 +210,17 @@
         </section>
 
         <section id="workflow">
-          <p class="eyebrow">06 / LOCAL WORKFLOW</p>
+          <p class="eyebrow">07 / LOCAL WORKFLOW</p>
           <h2>ローカル開発</h2>
           <h3>通常のサイト変更</h3>
-          <pre><code>cabal update
-cabal build kofun-build
-cabal run kofun-build
+          <pre><code>nix develop
+nix run .#build-site
 python3 -m http.server 8000 --directory docs</code></pre>
-          <p><code>http://localhost:8000/</code>で確認します。編集元は<code>site-src/</code>で、<code>docs/</code>は生成物です。</p>
+          <p><code>http://localhost:8000/</code>で確認します。編集元は<code>site-src/</code>で、<code>docs/</code>は生成物です。direnv利用時は初回に<code>direnv allow</code>を実行します。</p>
 
           <h3>オープンデータを更新</h3>
-          <pre><code>node scripts/sync-data.mjs
-cabal run kofun-build
+          <pre><code>nix develop -c node scripts/sync-data.mjs
+nix run .#build-site
 git diff -- data/kofun.json docs/</code></pre>
           <p>
             同期にはNode.js 20以降、ImageMagick、ネットワーク接続が必要です。
@@ -212,16 +234,19 @@ git diff -- data/kofun.json docs/</code></pre>
 ├── scripts/sync-data.mjs    # 外部データ取得・統合
 ├── site-src/                # HTMLテンプレートと手書きアセット
 ├── docs/                    # GitHub Pagesへ渡す生成物
+├── flake.nix                # packages・devShell・checks・formatter
+├── flake.lock               # nixpkgsの固定リビジョン
+├── .envrc                   # direnv連携
 ├── DEVELOPERS.md            # リポジトリ向け詳細資料
 └── .github/workflows/       # CI / Pagesデプロイ</code></pre>
         </section>
 
         <section id="deployment">
-          <p class="eyebrow">07 / CI &amp; DEPLOYMENT</p>
+          <p class="eyebrow">08 / CI &amp; DEPLOYMENT</p>
           <h2>GitHub Pagesへの配信</h2>
           <p><code>main</code>へのpush、または手動実行で次の順に処理します。</p>
           <div class="deployment-line">
-            <span>checkout</span><i>→</i><span>GHC / cabal</span><i>→</i><span>cache</span><i>→</i><span>build</span><i>→</i><span>generate</span><i>→</i><span>artifact</span><i>→</i><span>Pages</span>
+            <span>checkout</span><i>→</i><span>install Nix</span><i>→</i><span>flake check</span><i>→</i><span>nix run</span><i>→</i><span>artifact</span><i>→</i><span>Pages</span>
           </div>
           <p>
             buildジョブはソースを読むだけです。deployジョブだけに<code>pages: write</code>と
@@ -230,7 +255,7 @@ git diff -- data/kofun.json docs/</code></pre>
         </section>
 
         <section id="licenses">
-          <p class="eyebrow">08 / LICENSE BOUNDARY</p>
+          <p class="eyebrow">09 / LICENSE BOUNDARY</p>
           <h2>データを追加する前の確認</h2>
           <ul class="check-list">
             <li>データセットの利用規約と、個別画像のライセンスを別々に確認する。</li>
@@ -243,7 +268,7 @@ git diff -- data/kofun.json docs/</code></pre>
         </section>
 
         <section id="limits">
-          <p class="eyebrow">09 / LIMITS &amp; ROADMAP</p>
+          <p class="eyebrow">10 / LIMITS &amp; ROADMAP</p>
           <h2>現在の制約と拡張方針</h2>
           <ul class="roadmap-list">
             <li><b>全国完全収録ではない</b><span>自由利用条件を確認できた地点を優先。許諾済みデータは同じスキーマへ追加できます。</span></li>
