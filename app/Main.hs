@@ -148,7 +148,7 @@ sitemap =
   T.unlines
     [ "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
     , "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">"
-    , "  <url><loc>https://hjosugi.github.io/kofun-photo/</loc></url>"
-    , "  <url><loc>https://hjosugi.github.io/kofun-photo/developers.html</loc></url>"
+    , "  <url><loc>https://hjosugi.github.io/kofun-gallery/</loc></url>"
+    , "  <url><loc>https://hjosugi.github.io/kofun-gallery/developers.html</loc></url>"
     , "</urlset>"
     ]

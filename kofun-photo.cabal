@@ -10,7 +10,7 @@ build-type:         Simple
 
 source-repository head
   type:             git
-  location:         https://github.com/hjosugi/kofun-photo.git
+  location:         https://github.com/hjosugi/kofun-gallery.git
 
 executable kofun-build
   main-is:          Main.hs

@@ -2,8 +2,8 @@
 
 全国の古墳を、地図・写真・歴史の入口・クイズで探せる静的サイトです。Haskellでサイトを生成し、GitHub Pagesへ公開します。
 
-- サイト: <https://hjosugi.github.io/kofun-photo/>
-- 開発者向けページ: <https://hjosugi.github.io/kofun-photo/developers.html>
+- サイト: <https://hjosugi.github.io/kofun-gallery/>
+- 開発者向けページ: <https://hjosugi.github.io/kofun-gallery/developers.html>
 - 詳細な技術資料: [DEVELOPERS.md](DEVELOPERS.md)
 
 ## できること

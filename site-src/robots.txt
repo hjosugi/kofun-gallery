@@ -1,4 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://hjosugi.github.io/kofun-photo/sitemap.xml
-
+Sitemap: https://hjosugi.github.io/kofun-gallery/sitemap.xml

@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import { basename, join } from "node:path";
 import { tmpdir } from "node:os";
 
-const userAgent = "KofunAtlas/0.1 (+https://github.com/hjosugi/kofun-photo)";
+const userAgent = "KofunAtlas/0.1 (+https://github.com/hjosugi/kofun-gallery)";
 const root = new URL("../", import.meta.url);
 const outputPath = new URL("data/kofun.json", root);
 const panoramaDir = new URL("site-src/assets/kofun360/", root);
