@@ -18,13 +18,29 @@
       ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
       pkgsFor = system: import nixpkgs { inherit system; };
+      secureHaskellPackages =
+        pkgs:
+        pkgs.haskell.packages.ghc910.override {
+          overrides = hself: _hsuper: {
+            aeson = hself.callHackageDirect {
+              pkg = "aeson";
+              ver = "2.2.5.1";
+              sha256 = "0bpc3y8m45rfkkjk7ii3bnj0pgj8bd4ik3bim0aq5ijpbiwxwmbz";
+            } { };
+            text-iso8601 = hself.callHackageDirect {
+              pkg = "text-iso8601";
+              ver = "0.1.1.2";
+              sha256 = "1jr00pwzc1rgs0688fn2k6rffphsah9a92x58i6m635abvafh370";
+            } { };
+          };
+        };
     in
     {
       packages = forAllSystems (
         system:
         let
           pkgs = pkgsFor system;
-          haskellPackages = pkgs.haskell.packages.ghc910;
+          haskellPackages = secureHaskellPackages pkgs;
           generator = haskellPackages.callCabal2nix "kofun-gallery" self { };
           site = pkgs.stdenvNoCC.mkDerivation {
             pname = "kofun-gallery-site";
@@ -80,7 +96,7 @@
         system:
         let
           pkgs = pkgsFor system;
-          haskellPackages = pkgs.haskell.packages.ghc910;
+          haskellPackages = secureHaskellPackages pkgs;
         in
         {
           default = pkgs.mkShell {
